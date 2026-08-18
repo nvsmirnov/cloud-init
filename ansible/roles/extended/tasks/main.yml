@@ -1,0 +1,52 @@
+---
+# role for server with interactive tools for engineer
+
+- name: install standard packages
+  package:
+    state: present
+    name:
+      # - bash            # now in base
+      # - bash-completion # now in base
+      # - vim  # now in base
+      # - less # now in base
+      - python3
+      - sysstat
+      - iotop
+      # - screen # now in base
+      - net-tools
+      - psmisc
+      - lsof
+      - zip
+      - unzip
+      - bzip2
+      - strace
+      - traceroute
+      - tcpdump
+      - patch
+      - tree
+      - jq
+      - yq
+
+- name: install bind utilities
+  ansible.builtin.package:
+    name: "{{ bind_utils_package.get(ansible_facts.os_family) }}"
+    state: present
+  when: bind_utils_package.get(ansible_facts.os_family) is not none
+  register: bind_utils_install
+
+- name: install other packages (all platforms except amazon linux)
+  ansible.builtin.package:
+    name:
+      - moreutils
+      - ncdu
+    state: present
+  when: ansible_facts.distribution != "Amazon"
+
+- name: record role bootstrap marker
+  ansible.builtin.copy:
+    dest: /var/lib/cloud-init-ansiblepull/role-done-{{ role_name }}
+    mode: "0644"
+    force: false
+    content: |
+      bootstrapped_by=cloud-init-ansiblepull
+      applied_at={{ ansible_facts.date_time.iso8601 }}

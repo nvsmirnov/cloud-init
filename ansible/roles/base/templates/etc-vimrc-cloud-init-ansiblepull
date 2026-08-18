@@ -1,0 +1,35 @@
+" This file is maintained by cloud-init-ansiblepull
+
+set background=dark
+
+" allow to change syntax inline with vi:syntax=...
+set modeline
+
+" Show (partial) command in status line.
+set showcmd
+
+" Show matching brackets.
+set showmatch
+
+" Do case insensitive matching
+set ignorecase
+
+" Incremental search
+"set incsearch
+
+" Automatically save before commands like :next and :make
+"set autowrite
+
+set shiftwidth=2
+set expandtab
+filetype indent on
+set nowrap
+
+" That's for switching between buffers without save
+set hidden
+
+autocmd FileType yaml,yaml.ansible setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0#
+
+if exists('+mouse')
+  set mouse=a
+endif

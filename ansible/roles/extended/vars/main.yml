@@ -1,0 +1,4 @@
+bind_utils_package:
+  RedHat: bind-utils
+  Debian: bind9-dnsutils
+  Alpine: bind-tools

@@ -1,0 +1,48 @@
+---
+- name: bootstrap host via ansible-pull
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    roles_to_apply: "{{ (roles | default('base')) | split(',') | reject('equalto', '') | list }}"
+
+  pre_tasks:
+
+    - name: create state directory
+      ansible.builtin.file:
+        path: /var/lib/cloud-init-ansiblepull
+        state: directory
+        mode: "0755"
+
+    - name: readme in state directory
+      ansible.builtin.copy:
+        dest: /var/lib/cloud-init-ansiblepull/README.md
+        mode: "0644"
+        force: false
+        content: |
+          # cloud-init-ansiblepull state directory
+
+          This directory is owned by cloud-init-ansiblepull (origin is https://github.com/nvsmirnov/cloud-init-ansiblepull.git)
+
+          If you see file named `all-done` - then all tasks performed successfully.
+
+          Also, there are files prefixed with `role-done-` - they are the same marks, but for idividual ansible roles, created in the end of role run.
+
+  tasks:
+
+    - name: include requested roles
+      ansible.builtin.include_role:
+        name: "{{ loop_role_name }}"
+      loop: "{{ roles_to_apply }}"
+      loop_control:
+        loop_var: "loop_role_name"  # so we could use {{ item }} inside role without warnings
+
+    - name: record final bootstrap marker
+      ansible.builtin.copy:
+        dest: /var/lib/cloud-init-ansiblepull/all-done
+        mode: "0644"
+        force: false
+        content: |
+          bootstrapped_by=cloud-init-ansiblepull
+          applied_at={{ ansible_facts.date_time.iso8601 }}

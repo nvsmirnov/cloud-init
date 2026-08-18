@@ -1,0 +1,90 @@
+---
+- name: check whether curl is already available
+  # the case is: on amazon linux with their repo,
+  # curl may go as curl-minimal package which is conflicting with base repo
+  # and that curl-minimal is usually newer than base repo's
+  # so we will just skip curl installation if it is already here
+  ansible.builtin.command:
+    argv:
+      - /bin/sh
+      - -c
+      - command -v curl
+  register: curl_check
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: install curl if not available
+  ansible.builtin.package:
+    name: curl
+    state: present
+  when: curl_check.rc != 0
+
+- name: install minimal baseline packages
+  ansible.builtin.package:
+    name:
+      - ca-certificates
+      - bash
+      - bash-completion
+      - jq
+      - yq
+      - less
+      - vim
+      - screen
+    state: present
+
+- name: /etc/profile.d/90-cloud-init-ansiblepull.sh
+  template:
+    src: templates/etc-profile-d-90-cloud-init-ansiblepull.sh.j2
+    dest: /etc/profile.d/90-cloud-init-ansiblepull.sh
+
+- name: /etc/vimrc-cloud-init-ansiblepull
+  template:
+    src: templates/etc-vimrc-cloud-init-ansiblepull
+    dest: /etc/vimrc-cloud-init-ansiblepull
+
+# vimrc:
+#   there are different variants of file location
+#   made it compatible at least with current ubuntu, fedora, alpine
+#   trying to insert this block before the lines with source .../vimrc.local,
+#   if these lines exist in vimrc, to not to overwrite owner's config defained in vimrc.local
+# known issue:
+#   sometimes there is a comment in vimrc before "if filereadable" ("Source a global configuration file if available")
+#   and our lines will go between this comment and actual "if" block.
+#   But this trade-off really ok, it is hard to make it better with ansible
+#   (multiline regexes support for blockinfile are version-specific, so better watch out)
+- name: find possible vimrc locations
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - /etc/vimrc
+    - /etc/vim/vimrc
+  register: vimrc_files
+
+- name: vimrc
+  blockinfile:
+    path: "{{ item.item }}"
+    marker: '" These lines are managed by cloud-init-ansiblepull ({mark})'
+    insertbefore: "^if filereadable.*vimrc\\.local"
+    block: |
+      if filereadable("/etc/cloud-init-ansiblepull")
+              source /etc/cloud-init-ansiblepull
+      endif
+  loop: "{{ vimrc_files.results }}"
+  when: item.stat.exists
+
+- name: /etc/screenrc
+  blockinfile:
+    path: /etc/screenrc
+    block: |
+      hardstatus string "%t (%n)"
+      startup_message off
+
+- name: record role bootstrap marker
+  ansible.builtin.copy:
+    dest: /var/lib/cloud-init-ansiblepull/role-done-{{ role_name }}
+    mode: "0644"
+    force: false
+    content: |
+      bootstrapped_by=cloud-init-ansiblepull
+      applied_at={{ ansible_facts.date_time.iso8601 }}

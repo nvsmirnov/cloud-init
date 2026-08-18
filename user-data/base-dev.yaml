@@ -1,0 +1,7 @@
+#cloud-config
+packages:
+  - git
+  - ansible-core
+runcmd:
+  - set -e
+  - ansible-pull --url=https://github.com/nvsmirnov/cloud-init-ansiblepull.git --checkout=dev ansible/playbook.yml

@@ -1,0 +1,12 @@
+#cloud-config
+packages:
+  - git
+  - ansible-core
+runcmd:
+  - set -e
+  # Alpine linux:
+  # community.general is needed for ansible.builtin.package's apk dispatch (Alpine only);
+  # must run before ansible-pull starts, a collection installed mid-play isn't visible
+  # to later tasks in that same run. No-op on non-apk systems.
+  - if command -v apk >/dev/null 2>&1; then ansible-galaxy collection install community.general; fi
+  - ansible-pull --url=https://github.com/nvsmirnov/cloud-init-ansiblepull.git --checkout=main -e "roles=base,extended" ansible/playbook.yml

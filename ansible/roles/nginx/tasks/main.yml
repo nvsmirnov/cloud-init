@@ -1,0 +1,23 @@
+---
+# sample role: install nginx
+
+- name: ensure baseline packages are present
+  ansible.builtin.package:
+    name:
+      - nginx
+    state: present
+
+- name: ensure nginx is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started
+
+- name: record role bootstrap marker
+  ansible.builtin.copy:
+    dest: /var/lib/cloud-init-ansiblepull/role-done-{{ role_name }}
+    mode: "0644"
+    force: false
+    content: |
+      bootstrapped_by=cloud-init-ansiblepull
+      applied_at={{ ansible_facts.date_time.iso8601 }}
